@@ -1,0 +1,371 @@
+<!-- SCANDIT WEB SAMPLE -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scandit UI Sample</title>
+
+  <!-- CDN LINK -->
+  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x"></script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/0.71/jquery.csv-0.71.min.js"></script>
+
+
+
+
+  <!-- GOOGLE FONT -->
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet" />
+
+
+
+  <style>
+    [hidden] {
+      display: none !important;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100vh;
+    }
+
+    body {
+      height: 100vh;
+      padding: 4vh 0 0 0;
+      margin: 0;
+      background-color: white;
+      color: black;
+      text-align: center;
+      font: 400 2.5vh "Open Sans", sans-serif;
+    }
+
+    .home-selection {
+      height: calc(100% - 24vh);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .name {
+      text-transform: uppercase;
+      font-size: 3vh;
+      font-weight: bold;
+      margin: 4vh;
+    }
+
+    button {
+      display: block;
+      background-color: #555;
+      color: white;
+      font-size: 3vh;
+      font-family: inherit;
+      padding: 2vh 5vh;
+      margin: 2vh auto;
+      width: 70vw;
+      max-width: 500px;
+    }
+
+    input {
+      font-size: inherit;
+      width: 200px;
+      border-style: none;
+      margin: 4vh;
+      padding: 0.5vh;
+    }
+
+    .scanner {
+      margin: auto;
+      max-width: 75vw;
+      max-height: 70vh;
+    }
+
+    .result-table {
+      text-align: center;
+      max-width: 75vw;
+      margin: 30px auto auto auto;
+    }
+
+    .result-table p {
+      height: 18px;
+      font-size: 2.5vh;
+      text-transform: uppercase;
+    }
+
+    .split-view-result-entries {
+      max-height: 200px;
+      overflow: auto;
+    }
+
+    #code {
+      cursor: pointer;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="logo"></div>
+  <div id="sample-name" class="name">UI SAMPLE</div>
+
+  <!-- output -->
+  <span id="matched-result"></span>
+
+  <div id="home-selection" class="home-selection">
+    <div id="description" class="description" hidden>Select the mode you want to try out:</div>
+    <div id="lib-loading"><br />Library is loading, please wait...</div>
+
+    <!-- scan begins here -->
+    <button id="scan-into-input-button" onclick="startScanIntoInput();" hidden>Scan into Input</button>
+  </div>
+
+  <form id="scan-input" hidden onsubmit="event.preventDefault()">
+    <p>Click in the input field to start the scanner</p>
+    Input: 
+
+    <input type="button" id="code" onfocus="scanIntoInputShowScanner(event);" readonly="true" value='scan' />
+
+  </form>
+
+
+  <div id="scan-input-result" hidden>
+
+    <p id="scan-input-result-text" hidden>Your result is now displayed in the input field</p>
+    <!-- Input:  -->
+
+    <input id="code-result" readonly="true" hidden/>
+
+    <br>
+    <!-- remove border -->
+    <!-- barcode data AFTER SCANNING -->
+    <!-- THIS IS WHERE THE DATA IS DISPLAYED AND DYNAMIC STUFF TAKE PLACE -->
+
+
+    <button id="scan-again-button" onclick="scanIntoInputShowScanner();">Scan Again</button>
+
+
+
+  </div>
+
+  <!-- SCANNER ITSELF -->
+  <div id="barcode-picker" class="scanner"></div>
+  <!-- SCANNER ITSELF -->
+
+    
+  </div>
+
+  <script>
+    const initialBaseURI = document.baseURI;
+    let scanditBarcodePicker;
+    let mode = 0;
+
+    // STORE INCOMING BARCODE
+    var extract = "";
+    var barcode_input = "";
+
+
+
+
+    const pageElements = {
+      sampleName: document.getElementById("sample-name"),
+      barcodePicker: document.getElementById("barcode-picker"),
+      home: {
+        container: document.getElementById("home-selection"),
+        description: document.getElementById("description"),
+          loader: document.getElementById("lib-loading"), //load text
+          scanIntoInputButton: document.getElementById("scan-into-input-button"),
+
+        },
+        scanInput: {
+          form: document.getElementById("scan-input"),
+          codeInput: document.getElementById("code"),
+          result: {
+            container: document.getElementById("scan-input-result"),
+            resultInput: document.getElementById("code-result"),
+          },
+        },
+
+      }; //END OF PAGE ELEMENTS FUNC
+
+      function resetApp() {
+        mode = 0;
+        counter = 0;
+        extract = results
+        results = [];
+        pageElements.sampleName.innerHTML = "UI Sample";
+
+
+        // RESPONSIBLE FOR PAGE TRANSFORMATION
+        pageElements.home.container.hidden = false;
+        pageElements.scanInput.form.hidden = true;
+        pageElements.scanInput.result.container.hidden = true;
+        // RESPONSIBLE FOR PAGE TRANSFORMATION
+
+
+        pageElements.barcodePicker.style.height = "auto";
+        if (scanditBarcodePicker) {
+          scanditBarcodePicker.setVideoFit("contain");
+          scanditBarcodePicker.pauseScanning();
+          scanditBarcodePicker.setVisible(false);
+        }
+      } //END OF RESETAPP FUNC
+
+
+      // LICENSE KEY
+      const key = "AdlhkR+OPmS9Kx1z+BPjtp0f/YOcRKyxClFwyKpVpuXWV+4LHBYEFsA8CD3dcG3FclWKwUZyxc9QZfQG71UBVzZs0MjVakKpQVtY3PRDrlY3MWclxBf08UULhV50QgRtLJVSMiGPwwF95qxVTnwAL3JFW5H9t+sBO1Xol2+zS3X3bFf2VKbPJ4v5EnGvFm5/neRitg6R6/37dZwjJfAFYT/eQvx6X3zwgcq2T7mv0sAPMdhAbMVtySS7WaY9StaIbohgkOmZ5ZOYR7EOsg0BL6H0SRS4iHwy0gBri1aECbMog2zHh9IHwzFhV57+0i8YZQf0LudCQroGOQLZ60KxRvvGGTkHUZ975exay3WaY+hyhxUx70bTRxdGlE9Drl7cJwSvpdHMwAxTmsztKQFqquYiGxFbnm5Ds7/3B9pVGbv8PX1CxDJXSzan5HS6XPpbR1z7v3nfHeo/0mF+IldG65uzc7oENCTkp6d/t1V5ewjepkApt6okZs3iS/5GTzfEYlkH6I9MVv2+uMuFb0WkV/+JToKPDosVXYM64G9Mw125z+iYjnqCf2Zx/RGE+UwgICSmPQGQThhINmlaqaTCDWalnwypEAtrmZLD3rvTr7SBXhk7mWKsrxiFebv1xv51OGsUrIBXFk4PP5NyylSQDQNYPLSq96dJXZB79IpNDUd+Nsccvp8XKeNaHiQAYUZArA6mAC++wySAIig28DI9xNsP5ovCOProMzAVL5WhPu12qreWs5CTu95AP6nz0L7u4WCabpjrLjMJGjLXwQv9KanX/N9Ub38rZrpsI8TgfA==";
+      // LICENSE KEY
+
+
+      const scannerReady = ScanditSDK.configure(key, {
+        engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build",
+      })
+
+
+      .then(function () {
+
+          // HOW SCANDIT CREATES THE BARCODE SCREEN
+          return ScanditSDK.BarcodePicker.create(document.getElementById("barcode-picker"), {
+            visible: false,
+            playSoundOnScan: true,
+            vibrateOnScan: true,
+            scanningPaused: true,
+          }).then(function (barcodePicker) {
+
+            scanditBarcodePicker = barcodePicker;
+
+            const scanSettings = new ScanditSDK.ScanSettings({
+
+              // DIFF TYPES OF BARCODES
+              enabledSymbologies: ["ean8", "ean13", "upce", "code128", "code39", "itf", "qr", "data-matrix"],
+              // DIFF TYPES OF BARCODES
+
+              codeDuplicateFilter: 1000,
+
+              // CAMERASCREEN AOE
+              searchArea: { x: 0, y: 0.333, width: 1, height: 0.333 },
+              // CAMERASCREEN AOE
+
+            }); //END OF SCANSETTINGS FUNC
+
+            // find out what does applyScanSettings do
+            barcodePicker.applyScanSettings(scanSettings);
+
+            // MORE PAGE TRANSFORMATION
+            barcodePicker.on("ready", function () {
+              pageElements.home.loader.hidden = true;
+              pageElements.home.description.hidden = false;
+              pageElements.home.scanIntoInputButton.hidden = false;
+
+
+            }); //END OF READY
+
+            // BARCODE MATCHING LOGIC
+            barcodePicker.on("scan", function (scanResult) {
+              // when scan input button is clicked
+              if (mode === 1) {
+                window.scrollTo(0, 0);
+                pageElements.scanInput.result.resultInput.value = scanResult.barcodes[0].data;
+
+                // DETECTED BARCODE
+                extract = scanResult.barcodes[0].data;
+
+                // STORE INTO INTUITIVE VARIABLE
+                barcode_input = extract
+
+                // CHECK AGAINST BARCODE ARRAY
+                var barcode_list = ['3241646', '1371703', '3744472']
+
+                for (let i = 0;i < barcode_list.length; i++) {
+                  if (barcode_list[i] == barcode_input) {
+
+
+                    document.getElementById('matched-result').innerHTML = 'eureka';
+
+                    break;
+                  } else {
+                      document.getElementById('matched-result').innerHTML = 'barcode do not match within database'
+
+                    }
+                }
+
+                scanIntoInputResult();
+
+              } else if (mode === 2) {
+
+                counter = counter + 1;
+
+                // MODE 2 not needed
+
+              }
+
+            }); //END OF ON SCAN FUNC
+
+            barcodePicker.on("scanError", function (error) {
+              alert(error);
+            });
+
+          });
+
+        })
+
+      .catch(function (error) {
+        alert(error);
+      });
+
+      // RESPONSIBLE FOR SHOWING SCANNER
+      // ALSO TIED TO SCAN AGAIN BUTTON
+      function scanIntoInputShowScanner(e) {
+        e && e.preventDefault();
+        pageElements.scanInput.result.container.hidden = true;
+        pageElements.scanInput.form.hidden = true;
+        scanditBarcodePicker.resumeScanning();
+        scanditBarcodePicker.setVisible(true); //for showing scanner again
+
+        // RESET SPAN TAG FOR NEW SCAN
+        document.getElementById('matched-result').innerHTML = "";
+      }
+      // RESPONSIBLE FOR SHOWING SCANNER
+      // ARRANGEMENT FIRST BECAUSE IT NEEDS TO BE INITIALIZED
+
+      function startScanIntoInput() {
+        mode = 1; //toggle to mode 1, utilizing hot encoding
+        window.location.hash = "#mode=1";
+        pageElements.sampleName.innerHTML = "Scan into Input";
+        pageElements.home.container.hidden = true;
+        pageElements.scanInput.form.hidden = false;
+        scanIntoInputShowScanner(event) //warp page to scanner
+      }
+
+      
+
+      function scanIntoInputResult() {
+        pageElements.scanInput.result.container.hidden = false;
+        scanditBarcodePicker.pauseScanning();
+        scanditBarcodePicker.setVisible(false);
+      }
+
+      // how is this transforming the page via modes
+      function activateRoute() {
+        if (window.location.hash === "") {
+          return resetApp();
+        }
+        switch (window.location.hash) {
+          case "#mode=1":
+            scannerReady.then(startScanIntoInput);
+            break;
+
+        }
+      }
+
+      window.onpopstate = activateRoute;
+
+      activateRoute();
+    </script>
+  </body>
+  </html>
+
